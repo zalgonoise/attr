@@ -23,8 +23,6 @@ type Attr interface {
 	WithValue(value any) Attr
 }
 
-type Attrs []Attr
-
 // New is a generic function to create an Attr
 //
 // Using a generic approach allows the Attr.WithValue method to be
@@ -78,6 +76,31 @@ func (a attr[T]) WithValue(value any) Attr {
 	return New(a.key, v)
 }
 
+// MarshalJSON encodes the attribute as a JSON object (key-value pair)
+func (a attr[T]) MarshalJSON() ([]byte, error) {
+	var kv = map[string]any{}
+	switch v := a.Value().(type) {
+	case []Attr:
+		kv[a.Key()] = mapAttrs(v...)
+	case Attr:
+		kv[a.Key()] = mapAttrs(v)
+	default:
+		kv[a.Key()] = a.Value()
+	}
+
+	return json.Marshal(kv)
+}
+
+func (a attr[T]) MarshalText() (text []byte, err error) {
+	return a.MarshalJSON()
+}
+
+// String implements fmt.Stringer
+func (a attr[T]) String() string {
+	b, _ := a.MarshalJSON()
+	return string(b)
+}
+
 func mapAttrs(attrs ...Attr) map[string]any {
 	kv := map[string]any{}
 
@@ -95,122 +118,4 @@ func mapAttrs(attrs ...Attr) map[string]any {
 		}
 	}
 	return kv
-}
-
-// MarshalJSON encodes the attribute as a JSON object (key-value pair)
-func (a attr[T]) MarshalJSON() ([]byte, error) {
-	var kv = map[string]any{}
-	switch v := a.Value().(type) {
-	case []Attr:
-		kv[a.Key()] = mapAttrs(v...)
-	case Attr:
-		kv[a.Key()] = mapAttrs(v)
-	default:
-		kv[a.Key()] = a.Value()
-	}
-
-	return json.Marshal(kv)
-}
-
-// String implements fmt.Stringer
-func (a attr[T]) String() string {
-	b, _ := a.MarshalJSON()
-	return string(b)
-}
-
-// Ptr is a generic function to create an Attr from a pointer value
-//
-// Using a generic approach allows the Attr.WithValue method to be
-// scoped with certain constraints for specific applications
-func Ptr[T any](key string, value *T) Attr {
-	if key == "" {
-		return nil
-	}
-	return &ptrAttr[T]{
-		key: key,
-		ptr: value,
-	}
-}
-
-type ptrAttr[T any] struct {
-	key string
-	ptr *T
-}
-
-// Key returns the string key of the attribute Attr
-func (p *ptrAttr[T]) Key() string {
-	return p.key
-}
-
-// Value returns the (any) value of the attribute Attr
-func (p *ptrAttr[T]) Value() any {
-	if p.ptr == nil {
-		return nil
-	}
-	return *p.ptr
-}
-
-// WithKey returns a copy of this Attr, with key `key`
-func (p *ptrAttr[T]) WithKey(key string) Attr {
-	return Ptr(key, p.ptr)
-}
-
-// WithValue returns a copy of this Attr, with value `value`
-//
-// It must be the same type of the original Attr, otherwise returns
-// nil
-func (p *ptrAttr[T]) WithValue(value any) Attr {
-	if value == nil {
-		return nil
-	}
-
-	v, ok := (value).(*T)
-	if !ok {
-		return nil
-	}
-	return Ptr(p.key, v)
-}
-
-// MarshalJSON encodes the attribute as a JSON object (key-value pair)
-func (p *ptrAttr[T]) MarshalJSON() ([]byte, error) {
-	var kv = map[string]any{}
-	switch v := p.Value().(type) {
-	case []Attr:
-		kv[p.Key()] = mapAttrs(v...)
-	case Attr:
-		kv[p.Key()] = mapAttrs(v)
-	default:
-		kv[p.Key()] = p.Value()
-	}
-
-	return json.Marshal(kv)
-}
-
-// String implements fmt.Stringer
-func (p *ptrAttr[T]) String() string {
-	b, _ := p.MarshalJSON()
-	return string(b)
-}
-
-// MarshalJSON encodes the attributes as a JSON object (key-value pairs)
-func (attrs Attrs) MarshalJSON() ([]byte, error) {
-	var kv = map[string]any{}
-	for _, a := range attrs {
-		switch v := a.Value().(type) {
-		case []Attr:
-			kv[a.Key()] = mapAttrs(v...)
-		case Attr:
-			kv[a.Key()] = mapAttrs(v)
-		default:
-			kv[a.Key()] = a.Value()
-		}
-	}
-
-	return json.Marshal(kv)
-}
-
-// String implements fmt.Stringer
-func (attrs Attrs) String() string {
-	b, _ := attrs.MarshalJSON()
-	return string(b)
 }
