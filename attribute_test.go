@@ -261,3 +261,99 @@ func TestWithValue(t *testing.T) {
 		}
 	})
 }
+
+func TestMap(t *testing.T) {
+	t.Run("TwoElements", func(t *testing.T) {
+		attrs := Attrs{
+			New("string", "string"),
+			New("int", 0),
+		}
+
+		out := Map(attrs...)
+		if len(out) != 2 {
+			t.Errorf("Unexpected output length: wanted %v ; got %v", 2, len(out))
+		}
+
+		s, ok := out["string"]
+		if !ok {
+			t.Errorf("expected key %s in map", "string")
+		}
+		if s.(string) != "string" {
+			t.Errorf("unexpected output error: wanted %s ; got %s", "string", s)
+		}
+
+		i, ok := out["int"]
+		if !ok {
+			t.Errorf("expected key %s in map", "int")
+		}
+		if i.(int) != 0 {
+			t.Errorf("unexpected output error: wanted %v ; got %v", 0, i)
+		}
+	})
+
+	t.Run("OverwritingElements", func(t *testing.T) {
+		attrs := Attrs{
+			New("string", "string"),
+			New("int", 0),
+			New("string", "nope"),
+		}
+
+		out := Map(attrs...)
+		if len(out) != 2 {
+			t.Errorf("Unexpected output length: wanted %v ; got %v", 2, len(out))
+		}
+
+		s, ok := out["string"]
+		if !ok {
+			t.Errorf("expected key %s in map", "string")
+		}
+		if s.(string) != "nope" {
+			t.Errorf("unexpected output error: wanted %s ; got %s", "nope", s)
+		}
+
+		i, ok := out["int"]
+		if !ok {
+			t.Errorf("expected key %s in map", "int")
+		}
+		if i.(int) != 0 {
+			t.Errorf("unexpected output error: wanted %v ; got %v", 0, i)
+		}
+	})
+
+	t.Run("NestingElements", func(t *testing.T) {
+		attrs := Attrs{
+			New("string", "string"),
+			New("int", 0),
+			New("attr", New("string", "nope")),
+		}
+
+		out := Map(attrs...)
+		if len(out) != 3 {
+			t.Errorf("Unexpected output length: wanted %v ; got %v", 2, len(out))
+		}
+
+		s, ok := out["string"]
+		if !ok {
+			t.Errorf("expected key %s in map", "string")
+		}
+		if s.(string) != "string" {
+			t.Errorf("unexpected output error: wanted %s ; got %s", "string", s)
+		}
+
+		i, ok := out["int"]
+		if !ok {
+			t.Errorf("expected key %s in map", "int")
+		}
+		if i.(int) != 0 {
+			t.Errorf("unexpected output error: wanted %v ; got %v", 0, i)
+		}
+
+		s, ok = out["attr"]
+		if !ok {
+			t.Errorf("expected key %s in map", "attr")
+		}
+		if s.(map[string]any)["string"] != "nope" {
+			t.Errorf("unexpected output error: wanted %s ; got %s", "nope", s)
+		}
+	})
+}

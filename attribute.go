@@ -77,18 +77,7 @@ func (a attr[T]) WithValue(value any) Attr {
 }
 
 func Map(attrs ...Attr) map[string]any {
-	var kv = map[string]any{}
-	for _, a := range attrs {
-		switch v := a.Value().(type) {
-		case []Attr:
-			kv[a.Key()] = mapAttrs(v...)
-		case Attr:
-			kv[a.Key()] = mapAttrs(v)
-		default:
-			kv[a.Key()] = a.Value()
-		}
-	}
-	return kv
+	return mapAttrs(attrs...)
 }
 
 // MarshalJSON encodes the attribute as a JSON object (key-value pair)
@@ -116,8 +105,10 @@ func mapAttrs(attrs ...Attr) map[string]any {
 		switch v := a.Value().(type) {
 		case []Attr:
 			kv[a.Key()] = mapAttrs(v...)
+		case Attrs:
+			kv[a.Key()] = mapAttrs(v...)
 		case Attr:
-			kv[a.Key()] = v.Value()
+			kv[a.Key()] = mapAttrs(v)
 		default:
 			kv[a.Key()] = v
 		}
